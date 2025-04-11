@@ -1,0 +1,164 @@
+//此代码需要7个File Bookmarks文件
+// 变量声明
+const widget = new ListWidget()
+const fm = FileManager.local()
+
+// 尺寸参数配置
+const config = {
+    imageWidth: 300,
+    imageRatio: 0.8,
+    avatarSize: 28,
+    iconSize: 22,
+    borderWidth: 2,
+    borderColor: new Color("#000000"),
+    textSize: {
+        small: 12,
+        regular: 14,
+        title: 12
+    },
+    spacing: {
+        main: 4,
+        header: 5
+    },
+    textFiles: {
+        userName: "WSfirst.txt",
+        userBio: "WSsecond.txt",
+        likes: "WSthird.txt",
+        comments: "WSfourth.txt",
+        caption: "WSfifth.txt"
+    }
+}
+
+// 设置渐变色背景
+const gradient = new LinearGradient()
+gradient.colors = [
+    new Color("#222222"),    // 纯黑
+    new Color("#F5F2ED")     // 深灰
+]
+gradient.locations = [0, 1]
+gradient.startPoint = new Point(0, 0)
+gradient.endPoint = new Point(1, 1)
+widget.backgroundGradient = gradient
+
+// 主容器
+const container = widget.addStack()
+container.layoutVertically()
+container.spacing = config.spacing.main
+container.setPadding(10, 10, 10, 10)
+
+// 文本内容读取
+const content = {
+    userName: readTextFile(config.textFiles.userName, "Name"),
+    userBio: readTextFile(config.textFiles.userBio, "UnderingText"),
+    likes: readTextFile(config.textFiles.likes, "Likes"),
+    comments: readTextFile(config.textFiles.comments, "LikeNumber"),
+    caption: readTextFile(config.textFiles.caption, "Information")
+}
+
+// 顶部用户信息
+const headerStack = container.addStack()
+headerStack.layoutHorizontally()
+headerStack.spacing = config.spacing.header
+
+// 用户头像
+try {
+    const avatar = fm.readImage(fm.bookmarkedPath("WSHead.PNG"))
+    const avatarImg = headerStack.addImage(avatar)
+    avatarImg.imageSize = new Size(config.avatarSize, config.avatarSize)
+    avatarImg.cornerRadius = config.avatarSize/2
+    avatarImg.borderWidth = config.borderWidth
+    avatarImg.borderColor = config.borderColor
+} catch {
+    const fallbackImg = headerStack.addImage(drawFallbackAvatar(config.avatarSize))
+    fallbackImg.imageSize = new Size(config.avatarSize, config.avatarSize)
+    fallbackImg.cornerRadius = config.avatarSize/2
+    fallbackImg.borderWidth = config.borderWidth
+    fallbackImg.borderColor = config.borderColor
+}
+
+// 用户名
+const userStack = headerStack.addStack()
+userStack.layoutVertically()
+userStack.spacing = 1
+const userName = userStack.addText(content.userName)
+userName.font = Font.heavyRoundedSystemFont(config.textSize.title)
+userName.textColor = new Color("#F5F2ED") // 白色文本
+
+// 用户副文本
+const userSubText = userStack.addText(content.userBio)
+userSubText.font = Font.heavyRoundedSystemFont(config.textSize.small)
+userSubText.textColor = new Color("#bfbdb9") // 浅灰色
+
+// 主图内容
+try {
+    const contentImg = fm.readImage(fm.bookmarkedPath("WSMain.PNG"))
+    const imgElement = container.addImage(contentImg)
+    const imgHeight = config.imageWidth * config.imageRatio
+    imgElement.imageSize = new Size(config.imageWidth, imgHeight)
+    imgElement.cornerRadius = 6
+    imgElement.borderWidth = config.borderWidth
+    imgElement.borderColor = config.borderColor
+} catch {
+    const errorText = container.addText("⚠️ Image Load Error")
+    errorText.font = Font.heavyRoundedSystemFont(config.textSize.regular)
+    errorText.textColor = new Color("#F5F2ED")
+}
+
+// 底部互动区域
+const footerStack = container.addStack()
+footerStack.layoutVertically()
+footerStack.spacing = config.spacing.main - 2
+
+// 互动图标
+const interactionStack = footerStack.addStack()
+interactionStack.layoutHorizontally()
+interactionStack.spacing = 12
+
+addIconText(interactionStack, "heart.fill", content.likes, config)
+addIconText(interactionStack, "bubble.right", content.comments, config)
+
+// 描述文字
+const caption = footerStack.addText(content.caption)
+caption.font = Font.heavyRoundedSystemFont(config.textSize.regular)
+caption.textColor = new Color("#F5F2ED") // 白色文本
+caption.lineLimit = 2
+
+// 渲染组件
+Script.setWidget(widget)
+widget.presentLarge()
+
+// 辅助函数：读取文本文件
+function readTextFile(filename, defaultValue = "") {
+    try {
+        const path = fm.bookmarkedPath(filename)
+        return fm.readString(path).trim() || defaultValue
+    } catch {
+        return defaultValue
+    }
+}
+
+// 辅助函数：绘制默认头像
+function drawFallbackAvatar(size) {
+    const ctx = new DrawContext()
+    ctx.size = new Size(size, size)
+    ctx.setFillColor(new Color("#222222"))
+    ctx.fillEllipse(new Rect(0, 0, size, size))
+    return ctx.getImage()
+}
+
+// 辅助函数：添加图标+文字
+function addIconText(stack, icon, text, config) {
+    const iconStack = stack.addStack()
+    iconStack.layoutHorizontally()
+    iconStack.spacing = 3
+    
+    const iconElement = SFSymbol.named(icon)
+    iconElement.applyFont(Font.heavyRoundedSystemFont(config.textSize.regular))
+    const iconImg = iconStack.addImage(iconElement.image)
+    iconImg.imageSize = new Size(config.iconSize, config.iconSize)
+    iconImg.tintColor = new Color("#F5F2ED") // 白色图标
+    
+    const textElement = iconStack.addText(text)
+    textElement.font = Font.heavyRoundedSystemFont(config.textSize.small)
+    textElement.textColor = new Color("#F5F2ED") // 白色文本
+}
